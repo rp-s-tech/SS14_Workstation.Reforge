@@ -1,0 +1,16 @@
+{
+    "localization": {
+        "base_sources": {
+            "space-axolotl-14": {
+                "owners": [
+                    "space-axolotl-14"
+                ],
+                "repo": "https://github.com/space-axolotl-14/space-axolotl-14",
+                "commit": "08bef00b87042814712bd498b73ea4291b57d5e8",
+                "scope": "localization_base_only"
+            }
+        },
+        "primary_layer": "rpsx",
+        "primary_layer_policy": "override_all_external_localizations"
+    }
+}
