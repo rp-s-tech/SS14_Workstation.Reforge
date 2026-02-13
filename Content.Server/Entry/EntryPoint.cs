@@ -104,6 +104,9 @@ namespace Content.Server.Entry
             Dependencies.BuildGraph();
             Dependencies.InjectDependencies(this);
 
+            // Use Russian locale by default for server-side localized messages.
+            _cfg.SetCVar("loc.culture_name", "ru-RU");
+
             LoadConfigPresets(_cfg, _res, _log.GetSawmill("configpreset"));
 
             var aczProvider = new ContentMagicAczProvider(Dependencies);

@@ -98,6 +98,9 @@ namespace Content.Client.Entry
             Dependencies.BuildGraph();
             Dependencies.InjectDependencies(this);
 
+            // Use Russian locale before localization manager initialization.
+            _configManager.SetCVar(CVars.LocCultureName, "ru-RU");
+
             _contentLoc.Initialize();
             _componentFactory.DoAutoRegistrations();
             _componentFactory.IgnoreMissingComponents();

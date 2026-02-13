@@ -1,0 +1,13 @@
+personal-items-tab-title = Личные вещи
+personal-items-roundstart-title = Личные предметы для старта
+personal-items-available-count = Доступно предметов
+personal-items-search = Поиск
+personal-items-add-item = Добавить предмет
+personal-items-selected-items = Выбранные предметы
+personal-items-remove-item = Убрать предмет
+personal-items-pet-title = Питомец
+personal-items-pet-name = Имя
+personal-items-category-not-available = Эта категория сейчас недоступна для вашей учетной записи.
+personal-items-category-unlock-button = Открыть дополнительные возможности
+personal-items-ghost-skins-title = Скины призрака
+personal-items-ghost-skins-select = Выбрать
