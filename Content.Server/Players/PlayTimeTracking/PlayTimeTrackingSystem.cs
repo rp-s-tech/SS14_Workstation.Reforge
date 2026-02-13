@@ -15,6 +15,7 @@ using Content.Shared.Players;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Preferences;
 using Content.Shared.Roles;
+using Content.Shared.RPSX.Patron;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
 using Robust.Shared.Network;
@@ -37,6 +38,7 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly SharedRoleSystem _roles = default!;
     [Dependency] private readonly PlayTimeTrackingManager _tracking = default!;
+    [Dependency] private readonly ISponsorsManager _sponsorsManager = default!;
 
     public override void Initialize()
     {
@@ -243,6 +245,9 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
         if (!_cfg.GetCVar(CCVars.GameRoleTimers))
             return true;
 
+        if (_sponsorsManager.IsUserHasRoleTimeByPass(player.UserId))
+            return true;
+
         if (!_tracking.TryGetTrackerTimes(player, out var playTimes))
         {
             Log.Error($"Unable to check playtimes {Environment.StackTrace}");
@@ -271,6 +276,9 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
         if (!_cfg.GetCVar(CCVars.GameRoleTimers))
             return true;
 
+        if (_sponsorsManager.IsUserHasRoleTimeByPass(player.UserId))
+            return true;
+
         if (!_tracking.TryGetTrackerTimes(player, out var playTimes))
         {
             Log.Error($"Unable to check playtimes {Environment.StackTrace}");
@@ -294,6 +302,9 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
         if (!_cfg.GetCVar(CCVars.GameRoleTimers))
             return roles;
 
+        if (_sponsorsManager.IsUserHasRoleTimeByPass(player.UserId))
+            return roles;
+
         if (!_tracking.TryGetTrackerTimes(player, out var playTimes))
         {
             Log.Error($"Unable to check playtimes {Environment.StackTrace}");
@@ -312,6 +323,9 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
     public void RemoveDisallowedJobs(NetUserId userId, List<ProtoId<JobPrototype>> jobs)
     {
         if (!_cfg.GetCVar(CCVars.GameRoleTimers))
+            return;
+
+        if (_sponsorsManager.IsUserHasRoleTimeByPass(userId))
             return;
 
         var player = _playerManager.GetSessionById(userId);

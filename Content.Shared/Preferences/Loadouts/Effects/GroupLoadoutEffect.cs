@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Content.Shared.Preferences.Loadouts;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
@@ -13,14 +14,15 @@ public sealed partial class GroupLoadoutEffect : LoadoutEffect
     [DataField(required: true)]
     public ProtoId<LoadoutEffectGroupPrototype> Proto;
 
-    public override bool Validate(HumanoidCharacterProfile profile, RoleLoadout loadout, ICommonSession? session, IDependencyCollection collection, [NotNullWhen(false)] out FormattedMessage? reason)
+    public override bool Validate(HumanoidCharacterProfile profile, RoleLoadout loadout, LoadoutPrototype proto, ICommonSession? session, IDependencyCollection collection,
+        IReadOnlyCollection<string>? sponsorPrototypes, [NotNullWhen(false)] out FormattedMessage? reason)
     {
         var effectsProto = collection.Resolve<IPrototypeManager>().Index(Proto);
 
         var reasons = new List<string>();
         foreach (var effect in effectsProto.Effects)
         {
-            if (effect.Validate(profile, loadout, session, collection, out reason))
+            if (effect.Validate(profile, loadout, proto, session, collection, sponsorPrototypes, out reason))
                 continue;
 
             reasons.Add(reason.ToMarkup());

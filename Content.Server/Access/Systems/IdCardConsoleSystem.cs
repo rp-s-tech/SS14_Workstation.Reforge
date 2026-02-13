@@ -39,6 +39,7 @@ public sealed class IdCardConsoleSystem : SharedIdCardConsoleSystem
     [Dependency] private readonly ThrowingSystem _throwing = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
+    [Dependency] private readonly Content.Server.RPSX.Roles.Salary.Systems.CrewMemberSalarySystem _salarySystem = default!;
 
     public override void Initialize()
     {
@@ -225,6 +226,7 @@ public sealed class IdCardConsoleSystem : SharedIdCardConsoleSystem
         {
             record.JobPrototype = newJobProto.ID;
             record.JobIcon = newJobProto.Icon;
+            record.Salary = _salarySystem.GetCrewMemberSalary(key, newJobProto.ID);
         }
 
         _record.Synchronize(key);

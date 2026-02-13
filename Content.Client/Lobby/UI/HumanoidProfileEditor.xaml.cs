@@ -3,6 +3,7 @@ using Content.Client.Message;
 using Content.Client.Players.PlayTimeTracking;
 using Content.Client.Sprite;
 using Content.Shared.CCVar;
+using Content.Shared.RPSX.Patron;
 using Content.Shared.GameTicking;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Markings;
@@ -35,6 +36,7 @@ namespace Content.Client.Lobby.UI
         private readonly MarkingManager _markingManager;
         private readonly JobRequirementsManager _requirements;
         private readonly LobbyUIController _controller;
+        private readonly ISponsorsManager _sponsorsManager;
 
         private readonly SpriteSystem _sprite;
 
@@ -87,6 +89,7 @@ namespace Content.Client.Lobby.UI
             IPrototypeManager prototypeManager,
             IResourceManager resManager,
             JobRequirementsManager requirements,
+            ISponsorsManager sponsorsManager,
             MarkingManager markings)
         {
             RobustXamlLoader.Load(this);
@@ -100,6 +103,7 @@ namespace Content.Client.Lobby.UI
             _preferencesManager = preferencesManager;
             _resManager = resManager;
             _requirements = requirements;
+            _sponsorsManager = sponsorsManager;
             _controller = UserInterfaceManager.GetUIController<LobbyUIController>();
             _sprite = _entManager.System<SpriteSystem>();
 
@@ -286,6 +290,15 @@ namespace Content.Client.Lobby.UI
 
             #endregion Markings
 
+            #region PatronItems
+
+            TabContainer.SetTabTitle(5, Loc.GetString("personal-items-tab-title"));
+
+            CPatronItems.ItemsChanged += OnPatronItemsChange;
+            CPatronItems.PetChanged += OnPatronPetChange;
+
+            #endregion PatronItems
+
             RefreshFlavorText();
 
             #region Dummy
@@ -383,6 +396,7 @@ namespace Content.Client.Lobby.UI
             RefreshSpecies();
             RefreshTraits();
             RefreshFlavorText();
+            UpdatePatronItems();
             ReloadPreview();
 
             if (Profile != null)

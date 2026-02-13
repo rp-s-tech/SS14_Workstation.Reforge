@@ -289,6 +289,20 @@ namespace Content.Server.Database
 
         #endregion
 
+        #region Sponsors (RPSX stub - DB schema in later stage)
+
+        Task<Content.Shared.RPSX.Sponsors.AllSponsorInfo?> GetAdditionalSponsorTier(NetUserId userId);
+        Task ChangeAdditionalSponsorTier(NetUserId userId, Content.Shared.RPSX.Sponsors.SponsorTier tier, int days = 0, bool remove = false);
+
+        #endregion
+
+        #region Economy (RPSX stub - DB schema in later stage)
+
+        Task<Content.Shared.RPSX.Bank.Components.BankAccountComponent?> GetProfileEconomics(NetUserId userId, int slot);
+        Task SaveProfileEconomics(NetUserId userId, int slot, Content.Shared.RPSX.Bank.Components.BankAccountComponent bank);
+
+        #endregion
+
         #region Job Whitelists
 
         Task AddJobWhitelist(Guid player, ProtoId<JobPrototype> job);
@@ -374,6 +388,7 @@ namespace Content.Server.Database
         [Dependency] private readonly IResourceManager _res = default!;
         [Dependency] private readonly ILogManager _logMgr = default!;
         [Dependency] private readonly ISerializationManager _serialization = default!;
+        [Dependency] private readonly IPrototypeManager _prototype = default!;
 
         private ServerDbBase _db = default!;
         private LoggingProvider _msLogProvider = default!;
@@ -405,11 +420,11 @@ namespace Content.Server.Database
             {
                 case "sqlite":
                     SetupSqlite(out var contextFunc, out var inMemory);
-                    _db = new ServerDbSqlite(contextFunc, inMemory, _cfg, _synchronous, opsLog, _serialization);
+                    _db = new ServerDbSqlite(contextFunc, inMemory, _cfg, _synchronous, opsLog, _serialization, _prototype);
                     break;
                 case "postgres":
                     var (pgOptions, conString) = CreatePostgresOptions();
-                    _db = new ServerDbPostgres(pgOptions, conString, _cfg, opsLog, notifyLog, _serialization);
+                    _db = new ServerDbPostgres(pgOptions, conString, _cfg, opsLog, notifyLog, _serialization, _prototype);
                     break;
                 default:
                     throw new InvalidDataException($"Unknown database engine {engine}.");
@@ -935,6 +950,30 @@ namespace Content.Server.Database
         {
             DbWriteOpsMetric.Inc();
             return RunDbCommand(() => _db.MarkMessageAsSeen(id, dismissedToo));
+        }
+
+        public Task<Content.Shared.RPSX.Sponsors.AllSponsorInfo?> GetAdditionalSponsorTier(NetUserId userId)
+        {
+            DbReadOpsMetric.Inc();
+            return RunDbCommand(() => _db.GetAdditionalSponsorTier(userId));
+        }
+
+        public Task ChangeAdditionalSponsorTier(NetUserId userId, Content.Shared.RPSX.Sponsors.SponsorTier tier, int days = 0, bool remove = false)
+        {
+            DbWriteOpsMetric.Inc();
+            return RunDbCommand(() => _db.ChangeAdditionalSponsorTier(userId, tier, days, remove));
+        }
+
+        public Task<Content.Shared.RPSX.Bank.Components.BankAccountComponent?> GetProfileEconomics(NetUserId userId, int slot)
+        {
+            DbReadOpsMetric.Inc();
+            return RunDbCommand(() => _db.GetProfileEconomics(userId, slot));
+        }
+
+        public Task SaveProfileEconomics(NetUserId userId, int slot, Content.Shared.RPSX.Bank.Components.BankAccountComponent bank)
+        {
+            DbWriteOpsMetric.Inc();
+            return RunDbCommand(() => _db.SaveProfileEconomics(userId, slot, bank));
         }
 
         public Task AddJobWhitelist(Guid player, ProtoId<JobPrototype> job)

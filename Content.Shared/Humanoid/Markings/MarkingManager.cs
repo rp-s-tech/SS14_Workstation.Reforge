@@ -156,15 +156,24 @@ public sealed class MarkingManager
     }
 
     /// <summary>
-    /// Ensures that the <see cref="markingSets"/> are valid per the constraints on <see cref="group"/> and <see cref="sex"/>
+    /// Ensures that the <see cref="markingSets"/> are valid per the constraints on <see cref="group"/> and <see cref="sex"/>.
+    /// When sponsorPrototypes is provided, sponsor-only markings not in the list are removed.
+    /// Null = allow all (backward compatible).
     /// </summary>
-    public void EnsureValidGroupAndSex(Dictionary<HumanoidVisualLayers, List<Marking>> markingSets, ProtoId<MarkingsGroupPrototype> group, Sex sex)
+    public void EnsureValidGroupAndSex(Dictionary<HumanoidVisualLayers, List<Marking>> markingSets, ProtoId<MarkingsGroupPrototype> group, Sex sex, IReadOnlyCollection<string>? sponsorPrototypes = null)
     {
         foreach (var markings in markingSets.Values)
         {
             for (var i = markings.Count - 1; i >= 0; i--)
             {
                 if (!TryGetMarking(markings[i], out var marking) || !CanBeApplied(group, sex, marking))
+                {
+                    markings.RemoveAt(i);
+                    continue;
+                }
+
+                // Filter sponsor-only markings when sponsorPrototypes provided
+                if (sponsorPrototypes != null && marking.SponsorOnly && !sponsorPrototypes.Contains(marking.ID))
                     markings.RemoveAt(i);
             }
         }

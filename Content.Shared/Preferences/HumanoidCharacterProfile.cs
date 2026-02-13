@@ -7,6 +7,7 @@ using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Preferences.Loadouts;
 using Content.Shared.Roles;
+using Content.Shared.RPSX.Sponsors;
 using Content.Shared.Traits;
 using Robust.Shared.Collections;
 using Robust.Shared.Configuration;
@@ -96,6 +97,12 @@ namespace Content.Shared.Preferences
         public HumanoidCharacterAppearance Appearance { get; set; } = new();
 
         /// <summary>
+        /// Sponsor-related data (items, pet, etc.).
+        /// </summary>
+        [DataField]
+        public HumanoidSponsorData SponsorData { get; set; } = new();
+
+        /// <summary>
         /// When spawning into a round what's the preferred spot to spawn.
         /// </summary>
         [DataField]
@@ -136,7 +143,8 @@ namespace Content.Shared.Preferences
             PreferenceUnavailableMode preferenceUnavailable,
             HashSet<ProtoId<AntagPrototype>> antagPreferences,
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
-            Dictionary<string, RoleLoadout> loadouts)
+            Dictionary<string, RoleLoadout> loadouts,
+            HumanoidSponsorData? sponsorData = null)
         {
             Name = name;
             FlavorText = flavortext;
@@ -145,6 +153,7 @@ namespace Content.Shared.Preferences
             Sex = sex;
             Gender = gender;
             Appearance = appearance;
+            SponsorData = sponsorData ?? new HumanoidSponsorData();
             SpawnPriority = spawnPriority;
             _jobPriorities = jobPriorities;
             PreferenceUnavailable = preferenceUnavailable;
@@ -181,7 +190,16 @@ namespace Content.Shared.Preferences
                 other.PreferenceUnavailable,
                 new HashSet<ProtoId<AntagPrototype>>(other.AntagPreferences),
                 new HashSet<ProtoId<TraitPrototype>>(other.TraitPreferences),
-                new Dictionary<string, RoleLoadout>(other.Loadouts))
+                new Dictionary<string, RoleLoadout>(other.Loadouts),
+                new HumanoidSponsorData
+                {
+                    Items = new List<string>(other.SponsorData.Items),
+                    PetData = new ProfilePetData
+                    {
+                        PetId = other.SponsorData.PetData.PetId,
+                        PetName = other.SponsorData.PetData.PetName
+                    }
+                })
         {
         }
 
@@ -474,15 +492,30 @@ namespace Content.Shared.Preferences
             if (!_traitPreferences.SequenceEqual(other._traitPreferences)) return false;
             if (!Loadouts.SequenceEqual(other.Loadouts)) return false;
             if (FlavorText != other.FlavorText) return false;
+            if (!SponsorData.Items.SequenceEqual(other.SponsorData.Items)) return false;
+            if (SponsorData.PetData.PetId != other.SponsorData.PetData.PetId) return false;
+            if (SponsorData.PetData.PetName != other.SponsorData.PetData.PetName) return false;
             return Appearance.Equals(other.Appearance);
         }
 
-        public void EnsureValid(ICommonSession session, IDependencyCollection collection)
+        /// <summary>
+        /// Ensures the profile is valid. When sponsorPrototypes is provided, filters sponsor-only species/loadouts/markings.
+        /// Null = allow all (backward compatible).
+        /// </summary>
+        /// <param name="sponsorPrototypes">Optional. Allowed prototype IDs (species + loadouts + markings). Null = no sponsor filtering.</param>
+        public void EnsureValid(ICommonSession session, IDependencyCollection collection, IReadOnlyCollection<string>? sponsorPrototypes = null)
         {
             var configManager = collection.Resolve<IConfigurationManager>();
             var prototypeManager = collection.Resolve<IPrototypeManager>();
 
             if (!prototypeManager.TryIndex(Species, out var speciesPrototype) || speciesPrototype.RoundStart == false)
+            {
+                Species = HumanoidCharacterProfile.DefaultSpecies;
+                speciesPrototype = prototypeManager.Index(Species);
+            }
+
+            // Filter sponsor-only species: when sponsorPrototypes provided and current species is sponsor-only but not allowed
+            if (sponsorPrototypes != null && speciesPrototype.SponsorOnly && !sponsorPrototypes.Contains(Species.ToString()))
             {
                 Species = HumanoidCharacterProfile.DefaultSpecies;
                 speciesPrototype = prototypeManager.Index(Species);
@@ -555,7 +588,7 @@ namespace Content.Shared.Preferences
                 flavortext = FormattedMessage.RemoveMarkupOrThrow(FlavorText);
             }
 
-            var appearance = HumanoidCharacterAppearance.EnsureValid(Appearance, Species, Sex);
+            var appearance = HumanoidCharacterAppearance.EnsureValid(Appearance, Species, Sex, sponsorPrototypes);
 
             var prefsUnavailableMode = PreferenceUnavailable switch
             {
@@ -638,7 +671,7 @@ namespace Content.Shared.Preferences
                 // This happens after we verify the prototype exists
                 // These values are set equal in the database and we need to make sure they're equal here too!
                 loadouts.Role = roleName;
-                loadouts.EnsureValid(this, session, collection);
+                loadouts.EnsureValid(this, session, collection, sponsorPrototypes);
             }
 
             foreach (var value in toRemove)
@@ -686,10 +719,15 @@ namespace Content.Shared.Preferences
             return result;
         }
 
-        public HumanoidCharacterProfile Validated(ICommonSession session, IDependencyCollection collection)
+        /// <summary>
+        /// Returns a copy of this profile with all fields validated.
+        /// </summary>
+        /// <param name="sponsorPrototypes">Optional. Allowed prototype IDs for sponsor filtering. Null = no sponsor filtering.</param>
+        /// <returns>A new validated profile.</returns>
+        public HumanoidCharacterProfile Validated(ICommonSession session, IDependencyCollection collection, IReadOnlyCollection<string>? sponsorPrototypes = null)
         {
             var profile = new HumanoidCharacterProfile(this);
-            profile.EnsureValid(session, collection);
+            profile.EnsureValid(session, collection, sponsorPrototypes);
             return profile;
         }
 
@@ -729,6 +767,7 @@ namespace Content.Shared.Preferences
             hashCode.Add(Appearance);
             hashCode.Add((int)SpawnPriority);
             hashCode.Add((int)PreferenceUnavailable);
+            hashCode.Add(SponsorData);
             return hashCode.ToHashCode();
         }
 

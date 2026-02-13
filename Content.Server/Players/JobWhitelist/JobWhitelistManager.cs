@@ -1,10 +1,11 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Content.Server.Database;
 using Content.Shared.CCVar;
 using Content.Shared.Players.JobWhitelist;
 using Content.Shared.Roles;
+using Content.Shared.RPSX.Patron;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
 using Robust.Shared.Network;
@@ -17,6 +18,7 @@ public sealed class JobWhitelistManager : IPostInjectInit
 {
     [Dependency] private readonly IConfigurationManager _config = default!;
     [Dependency] private readonly IServerDbManager _db = default!;
+    [Dependency] private readonly ISponsorsManager _sponsorsManager = default!;
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly IPlayerManager _player = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
@@ -73,7 +75,7 @@ public sealed class JobWhitelistManager : IPostInjectInit
             return true;
         }
 
-        return IsWhitelisted(session.UserId, job);
+        return _sponsorsManager.IsJobAvailable(session.UserId, jobPrototype) || IsWhitelisted(session.UserId, job);
     }
 
     public bool IsWhitelisted(NetUserId player, ProtoId<JobPrototype> job)

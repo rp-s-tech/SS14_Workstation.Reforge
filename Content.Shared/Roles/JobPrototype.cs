@@ -153,6 +153,12 @@ namespace Content.Shared.Roles
         /// </summary>
         [DataField]
         public List<ProtoId<GuideEntryPrototype>>? Guides;
+
+        /// <summary>
+        /// When true, sponsor-related job restrictions (e.g. whitelist) are ignored for this job.
+        /// </summary>
+        [DataField]
+        public bool SponsorIgnore { get; private set; } = false;
     }
 
     /// <summary>

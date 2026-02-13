@@ -13,6 +13,8 @@ using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Preferences;
 using Content.Shared.Preferences.Loadouts;
 using Content.Shared.Roles;
+using Content.Shared.RPSX.Patron;
+using Content.Shared.RPSX.Sponsors;
 using Content.Shared.Traits;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
@@ -40,6 +42,7 @@ namespace Content.Server.Preferences.Managers
         [Dependency] private readonly UserDbDataManager _userDb = default!;
         [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
         [Dependency] private readonly MarkingManager _marking = default!;
+        [Dependency] private readonly ISponsorsManager _sponsors = default!;
         [Dependency] private readonly ISerializationManager _serialization = default!;
 
         // Cache player prefs on the server so we don't need as much async hell related to them.
@@ -167,6 +170,18 @@ namespace Content.Server.Preferences.Managers
                 loadouts[role.RoleName] = loadout;
             }
 
+            var sponsorData = new HumanoidSponsorData
+            {
+                Items = profile.PatronItems?.Select(i => i.ItemPrototypeId).ToList() ?? [],
+                PetData = profile.PatronPet != null
+                    ? new ProfilePetData
+                    {
+                        PetId = profile.PatronPet.PetId ?? string.Empty,
+                        PetName = profile.PatronPet.PetName ?? string.Empty
+                    }
+                    : new ProfilePetData()
+            };
+
             return new HumanoidCharacterProfile(
                 profile.CharacterName,
                 profile.FlavorText,
@@ -185,7 +200,8 @@ namespace Content.Server.Preferences.Managers
                 (PreferenceUnavailableMode) profile.PreferenceUnavailable,
                 antags.ToHashSet(),
                 traits.ToHashSet(),
-                loadouts
+                loadouts,
+                sponsorData
             );
         }
 
@@ -487,10 +503,19 @@ namespace Content.Server.Preferences.Managers
         {
             // Clean up preferences in case of changes to the game,
             // such as removed jobs still being selected.
+            IReadOnlyCollection<string>? sponsorPrototypes = null;
+            if (_sponsors.TryGetSponsorTier(session.UserId, out var sponsorInfo))
+            {
+                var list = new List<string>(sponsorInfo.AllowedSpecies.Count + sponsorInfo.AllowedLoadouts.Count + sponsorInfo.AllowedMarkings.Count);
+                list.AddRange(sponsorInfo.AllowedSpecies);
+                list.AddRange(sponsorInfo.AllowedLoadouts);
+                list.AddRange(sponsorInfo.AllowedMarkings);
+                sponsorPrototypes = list;
+            }
 
             return new PlayerPreferences(prefs.Characters.Select(p =>
             {
-                return new KeyValuePair<int, HumanoidCharacterProfile>(p.Key, p.Value.Validated(session, collection));
+                return new KeyValuePair<int, HumanoidCharacterProfile>(p.Key, p.Value.Validated(session, collection, sponsorPrototypes));
             }), prefs.SelectedCharacterIndex, prefs.AdminOOCColor, prefs.ConstructionFavorites);
         }
 

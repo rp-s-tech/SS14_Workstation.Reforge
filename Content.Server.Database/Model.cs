@@ -50,6 +50,11 @@ namespace Content.Server.Database
         public DbSet<BanTemplate> BanTemplate { get; set; } = null!;
         public DbSet<IPIntelCache> IPIntelCache { get; set; } = null!;
 
+        public DbSet<PatronProfileItem> PatronProfileItem { get; set; } = null!;
+        public DbSet<PatronProfilePet> PatronProfilePet { get; set; } = null!;
+        public DbSet<ProfileEconomics> ProfileEconomics { get; set; } = null!;
+        public DbSet<AdditionalSponsorData> AdditionalSponsorData { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Preference>()
@@ -85,6 +90,42 @@ namespace Content.Server.Database
                 .WithMany(e => e.Loadouts)
                 .HasForeignKey(e => e.ProfileLoadoutGroupId)
                 .IsRequired();
+
+            modelBuilder.Entity<PatronProfileItem>()
+                .HasOne(e => e.Profile)
+                .WithMany(p => p.PatronItems)
+                .HasForeignKey(e => e.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PatronProfileItem>()
+                .HasIndex(p => new { p.ProfileId, p.ItemPrototypeId });
+
+            modelBuilder.Entity<PatronProfilePet>()
+                .HasOne(e => e.Profile)
+                .WithOne(p => p.PatronPet)
+                .HasForeignKey<PatronProfilePet>(e => e.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PatronProfilePet>()
+                .HasIndex(p => p.ProfileId)
+                .IsUnique();
+
+            modelBuilder.Entity<ProfileEconomics>()
+                .HasOne(e => e.Profile)
+                .WithOne(p => p.Economics)
+                .HasForeignKey<ProfileEconomics>(e => e.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProfileEconomics>()
+                .HasIndex(p => p.ProfileId)
+                .IsUnique();
+
+            modelBuilder.Entity<AdditionalSponsorData>()
+                .HasIndex(a => a.UserId);
+
+            modelBuilder.Entity<AdditionalSponsorData>()
+                .HasIndex(a => new { a.UserId, a.TierId })
+                .IsUnique();
 
             modelBuilder.Entity<Job>()
                 .HasIndex(j => j.ProfileId);
@@ -346,10 +387,62 @@ namespace Content.Server.Database
 
         public List<ProfileRoleLoadout> Loadouts { get; } = new();
 
+        public List<PatronProfileItem> PatronItems { get; } = new();
+        public PatronProfilePet? PatronPet { get; set; }
+        public ProfileEconomics? Economics { get; set; }
+
         [Column("pref_unavailable")] public DbPreferenceUnavailableMode PreferenceUnavailable { get; set; }
 
         public int PreferenceId { get; set; }
         public Preference Preference { get; set; } = null!;
+    }
+
+    /// <summary>
+    /// Sponsor item prototype ID per profile slot.
+    /// </summary>
+    public class PatronProfileItem
+    {
+        public int Id { get; set; }
+        public int ProfileId { get; set; }
+        public Profile Profile { get; set; } = null!;
+        public string ItemPrototypeId { get; set; } = null!;
+    }
+
+    /// <summary>
+    /// Sponsor pet data per profile slot.
+    /// </summary>
+    public class PatronProfilePet
+    {
+        public int Id { get; set; }
+        public int ProfileId { get; set; }
+        public Profile Profile { get; set; } = null!;
+        public string PetId { get; set; } = default!;
+        public string PetName { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// Per-profile economics (bank balance, transactions).
+    /// </summary>
+    [Table("profile_economics")]
+    public class ProfileEconomics
+    {
+        public int Id { get; set; }
+        public int ProfileId { get; set; }
+        public Profile Profile { get; set; } = null!;
+        public int Balance { get; set; }
+        [Column(TypeName = "jsonb")] public JsonDocument? Transactions { get; set; }
+    }
+
+    /// <summary>
+    /// Per-user additional sponsor tier (DB-stored, merges with API tier).
+    /// </summary>
+    [Table("additional_sponsor_data")]
+    public class AdditionalSponsorData
+    {
+        public int Id { get; set; }
+        public Guid UserId { get; set; }
+        public string TierId { get; set; } = null!;
+        public DateTime? ExpiresAt { get; set; }
     }
 
     public class Job
@@ -757,7 +850,9 @@ namespace Content.Server.Database
         /// Results from rejected connections with external API checking tools
         IPChecks = 5,
         /// Results from rejected connections who are authenticated but have no modern hwid associated with them.
-        NoHwid = 6
+        NoHwid = 6,
+        /// Results from rejected connections when Discord auth is required but not linked.
+        Discord = 7
     }
 
     public class ServerBanHit

@@ -1,5 +1,7 @@
 using Content.Client.Administration.Managers;
 using Content.Client.Changelog;
+using Content.Client.RPSX.Sponsors;
+using Content.Shared.RPSX.Patron;
 using Content.Client.Chat.Managers;
 using Content.Client.Clickable;
 using Content.Client.DebugMon;
@@ -36,6 +38,9 @@ namespace Content.Client.IoC
         public static void Register(IDependencyCollection collection)
         {
             SharedContentIoC.Register(collection);
+            // SharedContentIoC registers StubSponsorsManager as a placeholder.
+            // Client must override it with the real implementation.
+            collection.Register<ISponsorsManager, SponsorsManager>(overwrite: true);
             collection.Register<IParallaxManager, ParallaxManager>();
             collection.Register<GeneratedParallaxCache>();
             collection.Register<IChatManager, ChatManager>();

@@ -10,6 +10,7 @@ using Content.Server.GameTicking;
 using Content.Server.Preferences.Managers;
 using Content.Shared.CCVar;
 using Content.Shared.GameTicking;
+using Content.Shared.RPSX.Patron;
 using Content.Shared.Players.PlayTimeTracking;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
@@ -63,6 +64,8 @@ namespace Content.Server.Connection
         [Dependency] private readonly IHttpClientHolder _http = default!;
         [Dependency] private readonly IAdminManager _adminManager = default!;
         [Dependency] private readonly IEntityManager _entityManager = default!;
+        [Dependency] private readonly ISponsorsManager _sponsorsManager = default!;
+        [Dependency] private readonly Content.Server.RPSX.Discord.IDiscordAuthManager _discordAuthManager = default!;
 
         private GameTicker? _ticker;
 
@@ -236,6 +239,10 @@ namespace Content.Server.Connection
                 return (ConnectionDenyReason.Ban, message, bans);
             }
 
+            var hasPriorityJoin = await HavePriorityJoin(userId);
+            if (hasPriorityJoin)
+                return null;
+
             if (HasTemporaryBypass(userId))
             {
                 _sawmill.Verbose("User {UserId} has temporary bypass, skipping further connection checks", userId);
@@ -308,6 +315,17 @@ namespace Content.Server.Connection
                 return (ConnectionDenyReason.Full, Loc.GetString("soft-player-cap-full"), null);
             }
 
+            if (_cfg.GetCVar(RPSXCCVars.DiscordAuthEnabled))
+            {
+                var playerUserId = e.UserData.UserId;
+                _discordAuthManager.RefreshVerification(playerUserId);
+
+                if (!await _discordAuthManager.IsVerifiedAsync(playerUserId))
+                {
+                    return (ConnectionDenyReason.Discord, Loc.GetString("discord-auth-required"), null);
+                }
+            }
+
             // Checks for whitelist IF it's enabled AND the user isn't an admin. Admins are always allowed.
             if (_cfg.GetCVar(CCVars.WhitelistEnabled) && adminData is null)
             {
@@ -348,6 +366,22 @@ namespace Content.Server.Connection
             }
 
             return null;
+        }
+
+        private async Task<bool> HavePriorityJoin(NetUserId userId)
+        {
+            await _sponsorsManager.LoadSponsorInfoForConnectionAsync(userId);
+            if (_sponsorsManager.TryGetSponsorTier(userId, out var tier) && tier.HavePriorityJoin)
+                return true;
+
+            _ticker ??= _entityManager.SystemOrNull<GameTicker>();
+            if (_ticker != null &&
+                _ticker.PlayerGameStatuses.TryGetValue(userId, out var status) &&
+                status == PlayerGameStatus.JoinedGame)
+                return true;
+
+            var isAdmin = await _db.GetAdminDataForAsync(userId) != null;
+            return isAdmin;
         }
 
         private bool HasTemporaryBypass(NetUserId user)

@@ -13,6 +13,7 @@ using Content.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Robust.Shared.Configuration;
 using Robust.Shared.Network;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.Manager;
 using Robust.Shared.Utility;
 
@@ -38,8 +39,9 @@ namespace Content.Server.Database
             IConfigurationManager cfg,
             bool synchronous,
             ISawmill opsLog,
-            ISerializationManager serialization)
-            : base(opsLog, serialization)
+            ISerializationManager serialization,
+            IPrototypeManager prototype)
+            : base(opsLog, serialization, prototype)
         {
             _options = options;
 

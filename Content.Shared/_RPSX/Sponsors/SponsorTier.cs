@@ -1,0 +1,37 @@
+using Robust.Shared.Prototypes;
+
+namespace Content.Shared.RPSX.Sponsors;
+
+[Prototype("sponsorTier")]
+public sealed partial class SponsorTier : IPrototype
+{
+    [IdDataField]
+    public string ID { get; private set; } = default!;
+
+    [DataField]
+    public int AvailableItems;
+
+    [DataField]
+    public bool RoleTimeByPass;
+
+    [DataField]
+    public List<string> AllowedMarkings = [];
+
+    [DataField]
+    public List<string> AllowedLoadouts = [];
+
+    [DataField]
+    public List<string> AllowedSpecies = [];
+
+    [DataField]
+    public bool HavePriorityJoin;
+
+    [DataField]
+    public List<string> PetCategories = [];
+
+    [DataField]
+    public List<string> Ghosts = [];
+
+    [DataField]
+    public string? OOCColor { get; set; }
+}

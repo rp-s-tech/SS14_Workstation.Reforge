@@ -24,6 +24,7 @@ using Content.Client.Stylesheets;
 using Content.Client.UserInterface;
 using Content.Client.Viewport;
 using Content.Client.Voting;
+using Content.Client.RPSX.Entry;
 using Content.Shared.Ame.Components;
 using Content.Shared.FeedbackSystem;
 using Content.Shared.Gravity;
@@ -69,6 +70,7 @@ namespace Content.Client.Entry
         [Dependency] private readonly GhostKickManager _ghostKick = default!;
         [Dependency] private readonly ExtendedDisconnectInformationManager _extendedDisconnectInformation = default!;
         [Dependency] private readonly JobRequirementsManager _jobRequirements = default!;
+        [Dependency] private readonly Content.Shared.RPSX.Patron.ISponsorsManager _sponsorsManager = default!;
         [Dependency] private readonly ContentLocalizationManager _contentLoc = default!;
         [Dependency] private readonly ContentReplayPlaybackManager _playbackMan = default!;
         [Dependency] private readonly IResourceManager _resourceManager = default!;
@@ -132,6 +134,8 @@ namespace Content.Client.Entry
             _prototypeManager.RegisterIgnore("codewordGenerator");
             _prototypeManager.RegisterIgnore("codewordFaction");
 
+            new RPSXRegisterIgnore().RegisterIgnore(_prototypeManager);
+
             _componentFactory.GenerateNetIds();
             _adminManager.Initialize();
             _screenshotHook.Initialize();
@@ -140,6 +144,7 @@ namespace Content.Client.Entry
             _viewportManager.Initialize();
             _ghostKick.Initialize();
             _extendedDisconnectInformation.Initialize();
+            _sponsorsManager.Initialize();
             _jobRequirements.Initialize();
             _playbackMan.Initialize();
             _clientsidePlaytimeManager.Initialize();

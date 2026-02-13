@@ -218,7 +218,7 @@ public sealed partial class LoadoutGroupContainer : BoxContainer
 
         var pressed = selected.Any(e => e.Prototype == proto.ID);
 
-        var enabled = loadout.IsValid(profile, session, proto.ID, collection, out var reason);
+        var enabled = loadout.IsValid(profile, session, proto.ID, collection, sponsorPrototypes: null, out var reason);
 
         var cont = new LoadoutContainer(proto, !enabled, reason);
 

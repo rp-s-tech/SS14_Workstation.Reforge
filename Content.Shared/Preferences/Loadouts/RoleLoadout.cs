@@ -58,7 +58,8 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
     /// <summary>
     /// Ensures all prototypes exist and effects can be applied.
     /// </summary>
-    public void EnsureValid(HumanoidCharacterProfile profile, ICommonSession session, IDependencyCollection collection)
+    /// <param name="sponsorPrototypes">Optional. When provided, used to filter sponsor-only loadouts. Null = allow all (backward compatible).</param>
+    public void EnsureValid(HumanoidCharacterProfile profile, ICommonSession session, IDependencyCollection collection, IReadOnlyCollection<string>? sponsorPrototypes = null)
     {
         var groupRemove = new ValueList<string>();
         var protoManager = collection.Resolve<IPrototypeManager>();
@@ -146,7 +147,7 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
                 }
 
                 // Validate the loadout can be applied (e.g. points).
-                if (!IsValid(profile, session, loadout.Prototype, collection, out _))
+                if (!IsValid(profile, session, loadout.Prototype, collection, sponsorPrototypes, out _))
                 {
                     loadouts.RemoveAt(i);
                     continue;
@@ -177,7 +178,7 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
                         continue;
 
                     // Not valid so don't default to it anyway.
-                    if (!IsValid(profile, session, defaultLoadout.Prototype, collection, out _))
+                    if (!IsValid(profile, session, defaultLoadout.Prototype, collection, sponsorPrototypes, out _))
                         continue;
 
                     loadouts.Add(defaultLoadout);
@@ -205,7 +206,8 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
     /// <summary>
     /// Resets the selected loadouts to default if no data is present.
     /// </summary>
-    public void SetDefault(HumanoidCharacterProfile? profile, ICommonSession? session, IPrototypeManager protoManager, bool force = false)
+    /// <param name="sponsorPrototypes">Optional. When provided, used to filter sponsor-only loadouts. Null = allow all (backward compatible).</param>
+    public void SetDefault(HumanoidCharacterProfile? profile, ICommonSession? session, IPrototypeManager protoManager, bool force = false, IReadOnlyCollection<string>? sponsorPrototypes = null)
     {
         if (profile == null)
             return;
@@ -247,7 +249,7 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
                     };
 
                     // Not valid so don't default to it anyway.
-                    if (!IsValid(profile, session, defaultLoadout.Prototype, collection, out _))
+                    if (!IsValid(profile, session, defaultLoadout.Prototype, collection, sponsorPrototypes, out _))
                         continue;
 
                     loadouts.Add(defaultLoadout);
@@ -260,7 +262,9 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
     /// <summary>
     /// Returns whether a loadout is valid or not.
     /// </summary>
-    public bool IsValid(HumanoidCharacterProfile profile, ICommonSession? session, ProtoId<LoadoutPrototype> loadout, IDependencyCollection collection, [NotNullWhen(false)] out FormattedMessage? reason)
+    /// <param name="sponsorPrototypes">Optional. When provided, used to filter sponsor-only loadouts. Null = allow all (backward compatible).</param>
+    public bool IsValid(HumanoidCharacterProfile profile, ICommonSession? session, ProtoId<LoadoutPrototype> loadout, IDependencyCollection collection,
+        IReadOnlyCollection<string>? sponsorPrototypes, [NotNullWhen(false)] out FormattedMessage? reason)
     {
         reason = null;
 
@@ -283,7 +287,7 @@ public sealed partial class RoleLoadout : IEquatable<RoleLoadout>
 
         foreach (var effect in loadoutProto.Effects)
         {
-            valid = valid && effect.Validate(profile, this, session, collection, out reason);
+            valid = valid && effect.Validate(profile, this, loadoutProto, session, collection, sponsorPrototypes, out reason);
         }
 
         return valid;

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Content.Shared.Preferences.Loadouts;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
@@ -13,8 +14,10 @@ public sealed partial class PointsCostLoadoutEffect : LoadoutEffect
     public override bool Validate(
         HumanoidCharacterProfile profile,
         RoleLoadout loadout,
+        LoadoutPrototype proto,
         ICommonSession? session,
         IDependencyCollection collection,
+        IReadOnlyCollection<string>? sponsorPrototypes,
         [NotNullWhen(false)] out FormattedMessage? reason)
     {
         reason = null;

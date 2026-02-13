@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -82,6 +82,14 @@ namespace Content.Server.Database
             modelBuilder.Entity<Profile>()
                 .Property(log => log.OrganMarkings)
                 .HasConversion(jsonByteArrayConverter);
+
+            var jsonNullableByteArrayConverter = new ValueConverter<JsonDocument?, byte[]>(
+                v => v == null ? Array.Empty<byte>() : JsonDocumentToByteArray(v),
+                v => v == null || v.Length == 0 ? null : ByteArrayToJsonDocument(v));
+
+            modelBuilder.Entity<ProfileEconomics>()
+                .Property(e => e.Transactions)
+                .HasConversion(jsonNullableByteArrayConverter);
 
             // EF core can make this automatically unique on sqlite but not psql.
             modelBuilder.Entity<IPIntelCache>()

@@ -4,6 +4,7 @@ using Content.Shared.Guidebook;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Preferences;
+using Content.Shared.RPSX.Patron;
 using Robust.Client.UserInterface.Controls;
 using Robust.Shared.Enums;
 using Robust.Shared.Prototypes;
@@ -156,6 +157,8 @@ public sealed partial class HumanoidProfileEditor
         _species.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
         var speciesIds = _species.Select(o => o.ID).ToList();
 
+        _sponsorsManager.TryGetSponsorTier(out var tier);
+
         for (var i = 0; i < _species.Count; i++)
         {
             var name = Loc.GetString(_species[i].Name);
@@ -164,6 +167,13 @@ public sealed partial class HumanoidProfileEditor
             if (Profile?.Species.Equals(_species[i].ID) == true)
             {
                 SpeciesButton.SelectId(i);
+            }
+
+            // SponsorOnly species: disable if not in tier.AllowedSpecies
+            if (_species[i].SponsorOnly)
+            {
+                if (tier?.AllowedSpecies.Contains(_species[i].ID) != true)
+                    SpeciesButton.SetItemDisabled(i, true);
             }
         }
 
@@ -295,5 +305,35 @@ public sealed partial class HumanoidProfileEditor
         }
 
         ReloadProfilePreview();
+    }
+
+    private void OnPatronItemsChange(List<string> items)
+    {
+        if (Profile == null)
+            return;
+
+        Profile.SponsorData.Items = new List<string>(items);
+        SetDirty();
+        ReloadProfilePreview();
+    }
+
+    private void OnPatronPetChange(string petId, string petName)
+    {
+        if (Profile == null)
+            return;
+
+        Profile.SponsorData.PetData.PetId = petId ?? string.Empty;
+        Profile.SponsorData.PetData.PetName = petName ?? string.Empty;
+        SetDirty();
+        ReloadProfilePreview();
+    }
+
+    private void UpdatePatronItems()
+    {
+        if (Profile == null)
+            return;
+
+        var data = Profile.SponsorData;
+        CPatronItems.SetPatronData(data.Items, data.PetData.PetId, data.PetData.PetName);
     }
 }

@@ -1,0 +1,13 @@
+personal-items-tab-title = Personal Items
+personal-items-roundstart-title = Round-start items
+personal-items-available-count = Available items
+personal-items-search = Search
+personal-items-add-item = Add item
+personal-items-selected-items = Selected items
+personal-items-remove-item = Remove item
+personal-items-pet-title = Pet
+personal-items-pet-name = Name
+personal-items-category-not-available = This category is currently locked for your account.
+personal-items-category-unlock-button = Unlock options
+personal-items-ghost-skins-title = Ghost skins
+personal-items-ghost-skins-select = Select

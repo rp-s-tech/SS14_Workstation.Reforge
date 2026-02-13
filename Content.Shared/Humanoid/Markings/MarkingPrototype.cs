@@ -33,6 +33,12 @@ namespace Content.Shared.Humanoid.Markings
         [DataField]
         public bool CanBeDisplaced { get; private set; } = true;
 
+        /// <summary>
+        /// When true, this marking is only available to sponsors (requires sponsor prototypes to be passed during validation).
+        /// </summary>
+        [DataField]
+        public bool SponsorOnly { get; private set; } = false;
+
         [DataField("sprites", required: true)]
         public List<SpriteSpecifier> Sprites { get; private set; } = default!;
 

@@ -1,0 +1,5 @@
+- type: ERTGroup
+  id: ERTShuttle
+  path: /Maps/_RPSX/Shuttles/ETR-Large-Base.yml
+  messageOnSpawn: rpsx-ert-group-shuttle-message-on-spawn
+  soundOnSpawn: /Audio/Announcements/ert_yes.ogg

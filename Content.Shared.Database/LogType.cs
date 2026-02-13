@@ -483,4 +483,14 @@ public enum LogType
     /// Events related to players connecting/disconnecting.
     /// </summary>
     Connection = 104,
+
+    /// <summary>
+    /// ATM related interactions.
+    /// </summary>
+    ATMUsage = 105,
+
+    /// <summary>
+    /// Salary related interactions.
+    /// </summary>
+    Salary = 106,
 }

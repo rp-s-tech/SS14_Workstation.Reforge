@@ -7,6 +7,7 @@ using Content.Server.Chat.Managers;
 using Content.Server.Connection;
 using Content.Server.Database;
 using Content.Server.Discord.DiscordLink;
+using Content.Server.RPSX.Discord;
 using Content.Server.EUI;
 using Content.Server.FeedbackSystem;
 using Content.Server.GameTicking;
@@ -23,6 +24,7 @@ using Content.Server.Preferences.Managers;
 using Content.Server.ServerInfo;
 using Content.Server.ServerUpdates;
 using Content.Server.Voting.Managers;
+using Content.Server.RPSX.Entry;
 using Content.Shared.CCVar;
 using Content.Shared.FeedbackSystem;
 using Content.Shared.Kitchen;
@@ -80,6 +82,8 @@ namespace Content.Server.Entry
         [Dependency] private readonly ServerInfoManager _serverInfo = default!;
         [Dependency] private readonly ServerUpdateManager _updateManager = default!;
         [Dependency] private readonly ServerFeedbackManager _feedbackManager = null!;
+        [Dependency] private readonly Content.Shared.RPSX.Patron.ISponsorsManager _sponsorsManager = default!;
+        [Dependency] private readonly IDiscordAuthManager _discordAuthManager = default!;
 
         public override void PreInit()
         {
@@ -112,6 +116,8 @@ namespace Content.Server.Entry
 
             _proto.RegisterIgnore("parallax");
 
+            new RPSXRegisterIgnore().RegisterIgnore(_factory, _res);
+
             _loc.Initialize();
 
             var dest = _cfg.GetCVar(CCVars.DestinationFile);
@@ -129,6 +135,8 @@ namespace Content.Server.Entry
             _netResMan.Initialize();
             _ghostKick.Initialize();
             _serverInfo.Initialize();
+            _sponsorsManager.Initialize();
+            _discordAuthManager.Initialize();
             _serverApi.Initialize();
             _voteManager.Initialize();
             _updateManager.Initialize();

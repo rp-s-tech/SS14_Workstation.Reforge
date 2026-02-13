@@ -4,6 +4,7 @@ loadout-name-edit-label-dataset = Sets a custom name to be used if you play this
 loadout-name-edit-tooltip = {$max} characters max. If no name is specified a random one may be chosen for you.
 
 # Restrictions
+loadout-sponsor-only = [color=yellow]Available to sponsors only.[/color]
 loadout-restrictions = Restrictions
 loadouts-min-limit = Min count: {$count}
 loadouts-max-limit = Max count: {$count}

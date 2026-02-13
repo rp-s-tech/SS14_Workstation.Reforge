@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Numerics;
 using Content.Shared.Body;
 using Content.Shared.Humanoid.Markings;
@@ -111,7 +111,11 @@ public sealed partial class HumanoidCharacterAppearance : IEquatable<HumanoidCha
         return new(color.RByte, color.GByte, color.BByte);
     }
 
-    public static HumanoidCharacterAppearance EnsureValid(HumanoidCharacterAppearance appearance, ProtoId<SpeciesPrototype> species, Sex sex)
+    /// <summary>
+    /// Ensures appearance is valid. When sponsorPrototypes is provided, filters sponsor-only markings.
+    /// Null = allow all (backward compatible).
+    /// </summary>
+    public static HumanoidCharacterAppearance EnsureValid(HumanoidCharacterAppearance appearance, ProtoId<SpeciesPrototype> species, Sex sex, IReadOnlyCollection<string>? sponsorPrototypes = null)
     {
         var eyeColor = ClampColor(appearance.EyeColor);
 
@@ -144,7 +148,7 @@ public sealed partial class HumanoidCharacterAppearance : IEquatable<HumanoidCha
                 var actualMarkings = appearance.Markings.GetValueOrDefault(organ)?.ShallowClone() ?? [];
 
                 markingManager.EnsureValidColors(actualMarkings);
-                markingManager.EnsureValidGroupAndSex(actualMarkings, organData.Value.Group, sex);
+                markingManager.EnsureValidGroupAndSex(actualMarkings, organData.Value.Group, sex, sponsorPrototypes);
                 markingManager.EnsureValidLayers(actualMarkings, organData.Value.Layers);
                 markingManager.EnsureValidLimits(actualMarkings, organData.Value.Group, organData.Value.Layers, skinColor, eyeColor);
 

@@ -27,11 +27,13 @@ namespace Content.Server.Database
         private readonly ISawmill _opsLog;
         public event Action<DatabaseNotification>? OnNotificationReceived;
         private readonly ISerializationManager _serialization;
+        private readonly IPrototypeManager _prototype;
 
         /// <param name="opsLog">Sawmill to trace log database operations to.</param>
-        public ServerDbBase(ISawmill opsLog, ISerializationManager serialization)
+        public ServerDbBase(ISawmill opsLog, ISerializationManager serialization, IPrototypeManager prototype)
         {
             _serialization = serialization;
+            _prototype = prototype;
             _opsLog = opsLog;
         }
 
@@ -47,6 +49,8 @@ namespace Content.Server.Database
                 .Include(p => p.Profiles).ThenInclude(h => h.Jobs)
                 .Include(p => p.Profiles).ThenInclude(h => h.Antags)
                 .Include(p => p.Profiles).ThenInclude(h => h.Traits)
+                .Include(p => p.Profiles).ThenInclude(h => h.PatronItems)
+                .Include(p => p.Profiles).ThenInclude(h => h.PatronPet)
                 .Include(p => p.Profiles)
                     .ThenInclude(h => h.Loadouts)
                     .ThenInclude(l => l.Groups)
@@ -288,6 +292,25 @@ namespace Content.Server.Database
                 }
 
                 profile.Loadouts.Add(dz);
+            }
+
+            profile.PatronItems.Clear();
+            foreach (var itemId in humanoid.SponsorData.Items)
+                profile.PatronItems.Add(new PatronProfileItem { ItemPrototypeId = itemId, Profile = profile });
+
+            if (profile.PatronPet != null)
+            {
+                profile.PatronPet.PetId = humanoid.SponsorData.PetData.PetId ?? string.Empty;
+                profile.PatronPet.PetName = humanoid.SponsorData.PetData.PetName ?? string.Empty;
+            }
+            else if (!string.IsNullOrEmpty(humanoid.SponsorData.PetData.PetId) || !string.IsNullOrEmpty(humanoid.SponsorData.PetData.PetName))
+            {
+                profile.PatronPet = new PatronProfilePet
+                {
+                    Profile = profile,
+                    PetId = humanoid.SponsorData.PetData.PetId ?? string.Empty,
+                    PetName = humanoid.SponsorData.PetData.PetName ?? string.Empty
+                };
             }
 
             return profile;
@@ -1615,6 +1638,140 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
 
             await db.DbContext.SaveChangesAsync();
             return true;
+        }
+
+        #endregion
+
+        #region Sponsors (RPSX)
+
+        public async Task<Content.Shared.RPSX.Sponsors.AllSponsorInfo?> GetAdditionalSponsorTier(NetUserId userId)
+        {
+            await using var db = await GetDb();
+
+            var data = await db.DbContext.AdditionalSponsorData
+                .Where(a => a.UserId == userId.UserId && (a.ExpiresAt == null || a.ExpiresAt > DateTime.UtcNow))
+                .ToListAsync();
+
+            if (data.Count == 0)
+                return null;
+
+            var result = new Content.Shared.RPSX.Sponsors.AllSponsorInfo();
+            foreach (var row in data)
+            {
+                if (!_prototype.TryIndex<Content.Shared.RPSX.Sponsors.SponsorTier>(row.TierId, out var tier))
+                    continue;
+                result.AvailableItems = Math.Min(2, result.AvailableItems + tier.AvailableItems);
+                result.RoleTimeByPass |= tier.RoleTimeByPass;
+                result.HavePriorityJoin |= tier.HavePriorityJoin;
+                foreach (var x in tier.AllowedMarkings) if (!result.AllowedMarkings.Contains(x)) result.AllowedMarkings.Add(x);
+                foreach (var x in tier.AllowedLoadouts) if (!result.AllowedLoadouts.Contains(x)) result.AllowedLoadouts.Add(x);
+                foreach (var x in tier.AllowedSpecies) if (!result.AllowedSpecies.Contains(x)) result.AllowedSpecies.Add(x);
+                foreach (var x in tier.PetCategories) if (!result.PetCategories.Contains(x)) result.PetCategories.Add(x);
+                foreach (var x in tier.Ghosts) if (!result.Ghosts.Contains(x)) result.Ghosts.Add(x);
+            }
+            return result;
+        }
+
+        public async Task ChangeAdditionalSponsorTier(NetUserId userId, Content.Shared.RPSX.Sponsors.SponsorTier tier, int days = 0, bool remove = false)
+        {
+            await using var db = await GetDb();
+
+            var existing = await db.DbContext.AdditionalSponsorData
+                .SingleOrDefaultAsync(a => a.UserId == userId.UserId && a.TierId == tier.ID);
+
+            if (remove)
+            {
+                if (existing != null)
+                    db.DbContext.AdditionalSponsorData.Remove(existing);
+                await db.DbContext.SaveChangesAsync();
+                return;
+            }
+
+            var expiresAt = days > 0 ? DateTime.UtcNow.AddDays(days) : (DateTime?)null;
+            if (existing != null)
+            {
+                existing.ExpiresAt = expiresAt;
+            }
+            else
+            {
+                db.DbContext.AdditionalSponsorData.Add(new AdditionalSponsorData
+                {
+                    UserId = userId.UserId,
+                    TierId = tier.ID,
+                    ExpiresAt = expiresAt
+                });
+            }
+            await db.DbContext.SaveChangesAsync();
+        }
+
+        #endregion
+
+        #region Economy (RPSX)
+
+        public async Task<Content.Shared.RPSX.Bank.Components.BankAccountComponent?> GetProfileEconomics(NetUserId userId, int slot)
+        {
+            await using var db = await GetDb();
+
+            var profile = await db.DbContext.Profile
+                .Include(p => p.Preference)
+                .Include(p => p.Economics)
+                .Where(p => p.Preference.UserId == userId.UserId && p.Slot == slot)
+                .SingleOrDefaultAsync();
+
+            var economics = profile?.Economics;
+            if (economics == null)
+                return null;
+
+            var transactions = new List<Content.Shared.RPSX.Bank.Transactions.BankTransaction>();
+            if (economics.Transactions?.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in economics.Transactions.RootElement.EnumerateArray())
+                {
+                    var loc = el.TryGetProperty("Location", out var locProp) ? locProp.GetString() ?? "" : "";
+                    var type = (Content.Shared.RPSX.Bank.Transactions.BankTransactionType)(el.TryGetProperty("Type", out var t) ? t.GetInt32() : 0);
+                    var status = (Content.Shared.RPSX.Bank.Transactions.BankTransactionStatus)(el.TryGetProperty("Status", out var s) ? s.GetInt32() : 0);
+                    var balanceChange = (Content.Shared.RPSX.Bank.Transactions.BankBalanceChangeType)(el.TryGetProperty("BalanceChangeType", out var b) ? b.GetInt32() : 0);
+                    var amount = el.TryGetProperty("Amount", out var a) ? a.GetInt32() : 0;
+                    transactions.Add(new Content.Shared.RPSX.Bank.Transactions.BankTransaction(loc, type, status, balanceChange, amount));
+                }
+            }
+            return new Content.Shared.RPSX.Bank.Components.BankAccountComponent
+            {
+                Balance = economics.Balance,
+                BankTransactions = transactions
+            };
+        }
+
+        public async Task SaveProfileEconomics(NetUserId userId, int slot, Content.Shared.RPSX.Bank.Components.BankAccountComponent bank)
+        {
+            await using var db = await GetDb();
+
+            var profile = await db.DbContext.Profile
+                .Include(p => p.Preference)
+                .Include(p => p.Economics)
+                .Where(p => p.Preference.UserId == userId.UserId && p.Slot == slot)
+                .SingleOrDefaultAsync();
+
+            if (profile == null)
+                return;
+
+            var arr = new List<object>();
+            foreach (var t in bank.BankTransactions)
+            {
+                arr.Add(new { t.Location, Type = (int)t.Type, Status = (int)t.Status, BalanceChangeType = (int)t.BalanceChangeType, t.Amount });
+            }
+            var json = JsonSerializer.SerializeToDocument(arr);
+
+            if (profile.Economics == null)
+            {
+                profile.Economics = new ProfileEconomics { Balance = bank.Balance, Transactions = json };
+            }
+            else
+            {
+                profile.Economics.Balance = bank.Balance;
+                profile.Economics.Transactions = json;
+            }
+            await db.DbContext.SaveChangesAsync();
         }
 
         #endregion

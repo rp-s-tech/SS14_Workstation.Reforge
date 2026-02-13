@@ -62,12 +62,13 @@ namespace Content.IntegrationTests.Tests.Preferences
         {
             var cfg = server.ResolveDependency<IConfigurationManager>();
             var serialization = server.ResolveDependency<ISerializationManager>();
+            var prototype = server.ResolveDependency<IPrototypeManager>();
             var opsLog = server.ResolveDependency<ILogManager>().GetSawmill("db.ops");
             var builder = new DbContextOptionsBuilder<SqliteServerDbContext>();
             var conn = new SqliteConnection("Data Source=:memory:");
             conn.Open();
             builder.UseSqlite(conn);
-            return new ServerDbSqlite(() => builder.Options, true, cfg, true, opsLog, serialization);
+            return new ServerDbSqlite(() => builder.Options, true, cfg, true, opsLog, serialization, prototype);
         }
 
         [Test]

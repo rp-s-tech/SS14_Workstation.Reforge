@@ -79,6 +79,12 @@
   - type: Examiner
     skipChecks: true
   - type: Ghost
+  - type: UserInterface
+    interfaces:
+      enum.SponsorGhostInterfaceKey.Key:
+        type: SponsorGhostBUI
+        interactionRange: -1
+        requireInputValidation: false
   - type: GhostSpriteState
     damageMap:
       Blunt: 3

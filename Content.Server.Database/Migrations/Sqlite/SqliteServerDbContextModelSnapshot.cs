@@ -17,6 +17,37 @@ namespace Content.Server.Database.Migrations.Sqlite
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
+            modelBuilder.Entity("Content.Server.Database.AdditionalSponsorData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("additional_sponsor_data_id");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("TierId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tier_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("PK_additional_sponsor_data");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "TierId")
+                        .IsUnique();
+
+                    b.ToTable("additional_sponsor_data", (string)null);
+                });
+
             modelBuilder.Entity("Content.Server.Database.Admin", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -862,6 +893,61 @@ namespace Content.Server.Database.Migrations.Sqlite
                     b.ToTable("job", (string)null);
                 });
 
+            modelBuilder.Entity("Content.Server.Database.PatronProfileItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("patron_profile_item_id");
+
+                    b.Property<string>("ItemPrototypeId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_prototype_id");
+
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("profile_id");
+
+                    b.HasKey("Id")
+                        .HasName("PK_patron_profile_item");
+
+                    b.HasIndex("ProfileId", "ItemPrototypeId");
+
+                    b.ToTable("patron_profile_item", (string)null);
+                });
+
+            modelBuilder.Entity("Content.Server.Database.PatronProfilePet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("patron_profile_pet_id");
+
+                    b.Property<string>("PetId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("pet_id");
+
+                    b.Property<string>("PetName")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("pet_name");
+
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("profile_id");
+
+                    b.HasKey("Id")
+                        .HasName("PK_patron_profile_pet");
+
+                    b.HasIndex("ProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_patron_profile_pet_profile_id");
+
+                    b.ToTable("patron_profile_pet", (string)null);
+                });
+
             modelBuilder.Entity("Content.Server.Database.PlayTime", b =>
                 {
                     b.Property<int>("Id")
@@ -1072,6 +1158,34 @@ namespace Content.Server.Database.Migrations.Sqlite
                         .IsUnique();
 
                     b.ToTable("profile", (string)null);
+                });
+
+            modelBuilder.Entity("Content.Server.Database.ProfileEconomics", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("profile_economics_id");
+
+                    b.Property<int>("Balance")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("balance");
+
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("profile_id");
+
+                    b.Property<byte[]>("Transactions")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("transactions");
+
+                    b.HasKey("Id")
+                        .HasName("PK_profile_economics");
+
+                    b.HasIndex("ProfileId")
+                        .IsUnique();
+
+                    b.ToTable("profile_economics", (string)null);
                 });
 
             modelBuilder.Entity("Content.Server.Database.ProfileLoadout", b =>
@@ -1762,6 +1876,30 @@ namespace Content.Server.Database.Migrations.Sqlite
                     b.Navigation("Profile");
                 });
 
+            modelBuilder.Entity("Content.Server.Database.PatronProfileItem", b =>
+                {
+                    b.HasOne("Content.Server.Database.Profile", "Profile")
+                        .WithMany("PatronItems")
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_patron_profile_item_profile_profile_id");
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Content.Server.Database.PatronProfilePet", b =>
+                {
+                    b.HasOne("Content.Server.Database.Profile", "Profile")
+                        .WithOne("PatronPet")
+                        .HasForeignKey("Content.Server.Database.PatronProfilePet", "ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_patron_profile_pet_profile_profile_id");
+
+                    b.Navigation("Profile");
+                });
+
             modelBuilder.Entity("Content.Server.Database.Player", b =>
                 {
                     b.OwnsOne("Content.Server.Database.TypedHwid", "LastSeenHWId", b1 =>
@@ -1803,6 +1941,18 @@ namespace Content.Server.Database.Migrations.Sqlite
                         .HasConstraintName("FK_profile_preference_preference_id");
 
                     b.Navigation("Preference");
+                });
+
+            modelBuilder.Entity("Content.Server.Database.ProfileEconomics", b =>
+                {
+                    b.HasOne("Content.Server.Database.Profile", "Profile")
+                        .WithOne("Economics")
+                        .HasForeignKey("Content.Server.Database.ProfileEconomics", "ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_profile_economics_profile_profile_id");
+
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Content.Server.Database.ProfileLoadout", b =>
@@ -2011,9 +2161,15 @@ namespace Content.Server.Database.Migrations.Sqlite
                 {
                     b.Navigation("Antags");
 
+                    b.Navigation("Economics");
+
                     b.Navigation("Jobs");
 
                     b.Navigation("Loadouts");
+
+                    b.Navigation("PatronItems");
+
+                    b.Navigation("PatronPet");
 
                     b.Navigation("Traits");
                 });

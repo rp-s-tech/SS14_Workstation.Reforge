@@ -5,6 +5,7 @@ using Content.Shared.Players.JobWhitelist;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Preferences;
 using Content.Shared.Roles;
+using Content.Shared.RPSX.Patron;
 using Robust.Client;
 using Robust.Client.Player;
 using Robust.Shared.Configuration;
@@ -23,6 +24,7 @@ public sealed class JobRequirementsManager : ISharedPlaytimeManager
     [Dependency] private readonly IEntityManager _entManager = default!;
     [Dependency] private readonly IPlayerManager _playerManager = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
+    [Dependency] private readonly ISponsorsManager _sponsorsManager = default!;
 
     private readonly Dictionary<string, TimeSpan> _roles = new();
     private readonly List<ProtoId<JobPrototype>> _jobBans = new();
@@ -190,6 +192,9 @@ public sealed class JobRequirementsManager : ISharedPlaytimeManager
         if (requirements == null || !_cfg.GetCVar(CCVars.GameRoleTimers))
             return true;
 
+        if (_sponsorsManager.IsUserHasRoleTimeByPass(default))
+            return true;
+
         var reasons = new List<string>();
         foreach (var requirement in requirements)
         {
@@ -209,7 +214,7 @@ public sealed class JobRequirementsManager : ISharedPlaytimeManager
         if (!_cfg.GetCVar(CCVars.GameRoleWhitelist))
             return true;
 
-        if (job.Whitelisted && !_jobWhitelists.Contains(job.ID))
+        if (job.Whitelisted && !_sponsorsManager.IsJobAvailable(job) && !_jobWhitelists.Contains(job.ID))
         {
             reason = FormattedMessage.FromUnformatted(Loc.GetString("role-not-whitelisted"));
             return false;

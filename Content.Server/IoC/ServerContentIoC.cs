@@ -1,6 +1,9 @@
 using Content.Server.Administration;
 using Content.Server.Administration.Logs;
 using Content.Server.Administration.Managers;
+using Content.Server.RPSX.Discord;
+using Content.Server.RPSX.Sponsors;
+using Content.Shared.RPSX.Patron;
 using Content.Server.Administration.Notes;
 using Content.Server.Afk;
 using Content.Server.Chat.Managers;
@@ -40,6 +43,10 @@ internal static class ServerContentIoC
     public static void Register(IDependencyCollection deps)
     {
         SharedContentIoC.Register(deps);
+        // SharedContentIoC registers StubSponsorsManager as a placeholder.
+        // Server must override it with the real implementation.
+        deps.Register<ISponsorsManager, SponsorsManager>(overwrite: true);
+        deps.Register<IDiscordAuthManager, DiscordAuthManager>();
         deps.Register<IChatManager, ChatManager>();
         deps.Register<ISharedChatManager, ChatManager>();
         deps.Register<IChatSanitizationManager, ChatSanitizationManager>();

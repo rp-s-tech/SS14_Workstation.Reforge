@@ -105,6 +105,12 @@ public sealed partial class SpeciesPrototype : IPrototype
     /// </summary>
     [DataField]
     public int MaxAge = 120;
+
+    /// <summary>
+    ///     When true, this species is only available to sponsors (requires sponsor prototypes to be passed during validation).
+    /// </summary>
+    [DataField]
+    public bool SponsorOnly { get; private set; } = false;
 }
 
 public enum SpeciesNaming : byte

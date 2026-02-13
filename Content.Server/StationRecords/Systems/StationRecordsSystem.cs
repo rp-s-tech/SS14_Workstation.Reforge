@@ -6,10 +6,12 @@ using Content.Shared.Forensics.Components;
 using Content.Shared.GameTicking;
 using Content.Shared.Inventory;
 using Content.Shared.PDA;
+using Content.Server.RPSX.Roles.Salary.Systems;
 using Content.Shared.Preferences;
 using Content.Shared.Roles;
 using Content.Shared.StationRecords;
 using Robust.Shared.Enums;
+using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 
@@ -34,7 +36,7 @@ namespace Content.Server.StationRecords.Systems;
 ///     depend on this general record being created. This is subject
 ///     to change.
 /// </summary>
-public sealed class StationRecordsSystem : SharedStationRecordsSystem
+public sealed partial class StationRecordsSystem : SharedStationRecordsSystem
 {
     [Dependency] private readonly InventorySystem _inventory = default!;
     [Dependency] private readonly StationRecordKeyStorageSystem _keyStorage = default!;
@@ -55,7 +57,7 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
         if (!TryComp<StationRecordsComponent>(args.Station, out var stationRecords))
             return;
 
-        CreateGeneralRecord(args.Station, args.Mob, args.Profile, args.JobId, stationRecords);
+        CreateGeneralRecord(args.Station, args.Mob, args.Profile, args.JobId, stationRecords, args.Player);
     }
 
     private void OnRename(ref EntityRenamedEvent ev)
@@ -84,7 +86,7 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
     }
 
     private void CreateGeneralRecord(EntityUid station, EntityUid player, HumanoidCharacterProfile profile,
-        string? jobId, StationRecordsComponent records)
+        string? jobId, StationRecordsComponent records, ICommonSession? session = null)
     {
         // TODO make PlayerSpawnCompleteEvent.JobId a ProtoId
         if (string.IsNullOrEmpty(jobId)
@@ -97,7 +99,7 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
         TryComp<FingerprintComponent>(player, out var fingerprintComponent);
         TryComp<DnaComponent>(player, out var dnaComponent);
 
-        CreateGeneralRecord(station, idUid.Value, profile.Name, profile.Age, profile.Species, profile.Gender, jobId, fingerprintComponent?.Fingerprint, dnaComponent?.DNA, profile, records);
+        CreateGeneralRecord(station, idUid.Value, profile.Name, profile.Age, profile.Species, profile.Gender, jobId, fingerprintComponent?.Fingerprint, dnaComponent?.DNA, profile, records, player, session);
     }
 
 
@@ -128,6 +130,8 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
     ///     Optional - other systems should anticipate this.
     /// </param>
     /// <param name="records">Station records component.</param>
+    /// <param name="mobUid">RPSX: Mob entity for Salary/MobEntity.</param>
+    /// <param name="session">RPSX: Player session for NetUserId.</param>
     public void CreateGeneralRecord(
         EntityUid station,
         EntityUid? idUid,
@@ -139,7 +143,9 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
         string? mobFingerprint,
         string? dna,
         HumanoidCharacterProfile profile,
-        StationRecordsComponent records)
+        StationRecordsComponent records,
+        EntityUid? mobUid = null,
+        ICommonSession? session = null)
     {
         if (!_prototypeManager.TryIndex<JobPrototype>(jobId, out var jobPrototype))
             throw new ArgumentException($"Invalid job prototype ID: {jobId}");
@@ -163,7 +169,10 @@ public sealed class StationRecordsSystem : SharedStationRecordsSystem
             Gender = gender,
             DisplayPriority = jobPrototype.RealDisplayWeight,
             Fingerprint = mobFingerprint,
-            DNA = dna
+            DNA = dna,
+            NetUserId = session?.UserId,
+            MobEntity = mobUid != null ? GetNetEntity(mobUid.Value) : null,
+            Salary = EntityManager.System<CrewMemberSalarySystem>().GetCrewMemberSalary(station, jobId)
         };
 
         var key = AddRecordEntry(station, record);
