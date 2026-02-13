@@ -1,0 +1,15 @@
+ent-ClothingHandsGlovesBoxingBase = { ent-ClothingHandsBase }
+    .desc = { ent-ClothingHandsBase.desc }
+ent-ClothingHandsGlovesBoxingRiggedBase = { ent-ClothingHandsGlovesBoxingBase }
+    .suffix = Rigged
+    .desc = { ent-ClothingHandsGlovesBoxingBase.desc }
+ent-ClothingHandsGlovesBoxingRiggedRed = red boxing gloves
+    .desc = Red gloves for competitive boxing.
+ent-ClothingHandsGlovesBoxingRiggedBlue = blue boxing gloves
+    .desc = Blue gloves for competitive boxing.
+ent-ClothingHandsGlovesBoxingRiggedGreen = green boxing gloves
+    .desc = Green gloves for competitive boxing.
+ent-ClothingHandsGlovesBoxingRiggedYellow = yellow boxing gloves
+    .desc = Yellow gloves for competitive boxing.
+ent-GlovesBoxingRiggedRandomSpawner = random rigged boxing glove spawner
+    .desc = { "" }

@@ -1,0 +1,10 @@
+ent-BaseIronsandStatue = { ent-BaseStructure }
+    .desc = A mysterious statue found in a desert of iron sand.
+ent-StatueIronsandSmall = ironsand small statue
+    .desc = { ent-BaseIronsandStatue.desc }
+ent-StatueIronsandSmall2 = ironsand small statue
+    .desc = { ent-BaseIronsandStatue.desc }
+ent-StatueIronsandTall = ironsand tall statue
+    .desc = { ent-BaseIronsandStatue.desc }
+ent-StatueIronsandTall2 = ironsand tall statue
+    .desc = { ent-BaseIronsandStatue.desc }
